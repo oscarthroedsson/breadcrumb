@@ -4,7 +4,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 rc=0
-for suite in tests/run-validator-tests.sh tests/run-installer-tests.sh; do
+for suite in tests/run-validator-tests.sh tests/run-installer-tests.sh tests/run-scorer-tests.sh; do
   echo
   echo "=== $(basename "$suite") ==="
   bash "$suite" || rc=1

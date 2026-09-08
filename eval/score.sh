@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Tallies eval/out into a results table. Ground truth for the scenario: NOT_SAFE.
+# Tallies an eval output directory into a results table.
+#
+#   eval/score.sh [OUT_DIR]      (default: eval/out)
+#
+# Ground truth for the scenario: NOT_SAFE.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-OUT="eval/out"
+OUT="${1:-eval/out}"
 
-[ -d "$OUT" ] || { echo "no eval/out — run eval/run.sh first" >&2; exit 1; }
+[ -d "$OUT" ] || { echo "no $OUT — run eval/run.sh first" >&2; exit 1; }
 
 printf '%-12s %7s %9s %13s %16s %11s\n' \
   "ARM" "TRIALS" "CORRECT" "MISLED(SAFE)" "UNPARSEABLE" "OUT_TOKENS"
