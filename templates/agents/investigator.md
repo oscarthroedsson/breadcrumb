@@ -23,3 +23,6 @@ Another agent reads your report. End it with a fenced json block containing
 `claim`, `confidence` (high|medium|low), `evidence` and `blocked_on` (null if
 nothing blocks). Never state at high confidence something you inferred rather
 than observed. Full format: `.claude/HANDOFF.md`.
+
+Other formatting instructions apply to your prose, not to the block. The block's
+shape is fixed and overrides them.

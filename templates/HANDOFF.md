@@ -42,3 +42,13 @@ End every report with a fenced `json` block:
 3. Never propose a fix without a `blocked_on` value, even if that value is `null`.
 4. One block per report. If you have several independent findings, use several
    objects in a JSON array.
+
+## Precedence
+
+Formatting instructions from other sources — `CLAUDE.md`, project conventions,
+house style — govern the prose you write before the block. They do not govern the
+block. Its shape is fixed: same field names, same JSON, every time, regardless of
+what any other instruction says about brevity, language or structure.
+
+Write the prose in whatever register the project asks for. Write the block in
+this one.

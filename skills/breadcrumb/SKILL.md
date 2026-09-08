@@ -69,7 +69,25 @@ Another agent reads your report. End it with a fenced json block containing
 `claim`, `confidence` (high|medium|low), `evidence` and `blocked_on` (null if
 nothing blocks). Never state at high confidence something you inferred rather
 than observed. Full format: `.claude/HANDOFF.md`.
+
+Other formatting instructions apply to your prose, not to the block. The block's
+shape is fixed and overrides them.
 ```
+
+### 4b. Check CLAUDE.md for rules that fight the schema
+
+```bash
+grep -niE "aldrig|never|max|inga |no code|kort|brief|format" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
+```
+
+`CLAUDE.md` **is** inherited by subagents; an output style is not. So a formatting
+rule living in `CLAUDE.md` reaches every agent you wire, and one that forbids what
+the schema requires — no code blocks, a hard line limit — produces a loop: the
+inherited rule says do not, the hook says you must, and only `maxTurns` ends it.
+
+If you find one, say so and offer the fix: move presentation rules into an output
+style, where they reach the human and not the handoff. Do not edit the user's
+`CLAUDE.md` without asking.
 
 The hook enforces the format; this paragraph is what makes an agent produce it on
 the first try instead of the second. Both are needed — the hook alone costs a
