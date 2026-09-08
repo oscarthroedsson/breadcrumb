@@ -111,9 +111,14 @@ secret value is itself suspect. Any `SAFE` verdict means the report misled the
 agent that read it. Binary, so scoring needs no judge model.
 
 ```bash
-eval/run.sh 5 sonnet   # 20 API calls, ~$0.40
+eval/run.sh 5 sonnet   # 1 preflight call, then 20 real ones, ~$0.40
 eval/score.sh
 ```
+
+The runner probes the CLI with one cheap call before spending the rest. If the
+`claude` CLI is not logged in it stops there and says so — the CLI has its own
+authentication, separate from the desktop app, so `claude` followed by `/login`
+once is usually all it needs.
 
 ```
 ARM           TRIALS   CORRECT  MISLED(SAFE)      UNPARSEABLE   OUT_TOKENS
@@ -133,9 +138,13 @@ project until that file exists — the harness is tested, the hypothesis is not.
 tests/run.sh
 ```
 
-24 tests, no API calls: 12 for the validator, 7 for the installer, 5 for the eval
-scorer. The scorer tests exist because a scorer that silently miscounts is worse
-than no eval at all.
+35 tests, no API calls: 12 for the validator, 7 for the installer, 5 for the eval
+scorer, 11 for the eval runner (which drives a stubbed CLI in `tests/stubs/`).
+
+The scorer tests exist because a scorer that silently miscounts is worse than no
+eval at all. The runner tests exist because the first version of this harness met
+an unauthenticated CLI and answered with twenty `UNPARSEABLE` lines and no
+explanation, having spent twenty calls to say nothing.
 
 ## When not to use this
 
