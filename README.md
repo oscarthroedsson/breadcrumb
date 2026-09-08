@@ -123,14 +123,22 @@ once is usually all it needs.
 ```
 ARM           TRIALS   CORRECT  MISLED(SAFE)      UNPARSEABLE   OUT_TOKENS
 --------------------------------------------------------------------------
-control            5         ?             ?                ?            ?
-breadcrumb         5         ?             ?                ?            ?
+control            5         5             0                0          606
+breadcrumb         5         5             0                0          889
 ```
 
-**Results are not filled in yet.** They will be published in
-[`docs/test-results.md`](docs/test-results.md) with the raw transcripts, once the
-harness has been run against a real account. Do not cite a number for this
-project until that file exists — the harness is tested, the hypothesis is not.
+**Run 1 found no effect.** Both arms scored 5/5. The schema changed no downstream
+decision and cost 47% more output tokens to do it.
+
+The reason is visible in the transcripts: the control never actually compressed.
+Told to be concise, it spent 606 tokens and kept every caveat on its own line.
+An agent writing like that does not need a schema — and on this machine it had
+help, because the CLI loaded a user-level output style that is itself a handoff
+protocol. The experiment never created the condition the hypothesis is about.
+
+So: **breadcrumb is unproven.** Do not adopt it on the strength of an argument
+this repository has failed to demonstrate. The full write-up, including what run 2
+must change, is in [`docs/test-results.md`](docs/test-results.md).
 
 ## Tests
 
