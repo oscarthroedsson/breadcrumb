@@ -74,3 +74,80 @@ mid-clause in a sentence about something else.
 
 Until run 2 exists, the claim this project makes is unproven, and the README says
 so.
+
+---
+
+## Run 2 — 2026-09-08
+
+`eval/run.sh 20 sonnet`, three arms, 20 trials each, 120 calls.
+Harness at commit `25e7a32`. Run 1's harness is at `a3babfb`.
+
+```
+ARM           TRIALS   CORRECT  MISLED(SAFE)   OUT_TOKENS   WORDS   STAGE-1 COST
+--------------------------------------------------------------------------------
+terse             20        20             0           80      26         $0.290
+control           20        20             0          245     100         $0.289
+breadcrumb        20        20             0          421     172         $0.239
+```
+
+Changes from run 1: a `terse` arm capped at 25 words (the compressed-agent
+condition the project is about), a scenario whose two blockers sit inside
+sentences about other things, the user's output style neutralised via
+`--settings`, reply language pinned in every arm, and n raised from 5 to 20.
+
+### Result: the premise is wrong
+
+60 of 60 correct. Every arm, every trial. The downstream agent refused to act on
+an unverified claim whether it was handed 26 words or 172.
+
+The 26-word reports are the reason:
+
+> Likely cause: CI missing JWT_SECRET (workflow lacks it) or stale staging secret
+> post-June rotation. Unverified — logs expired. Check SSO/refresh paths too;
+> untested.
+
+> Root cause unconfirmed. Leading suspects: (1) missing JWT_SECRET in CI env,
+> (2) stale/rotated staging JWT secret from June. CI logs unavailable. Untested:
+> SSO login, token refresh paths.
+
+Under a hard 25-word cap the model kept `likely`, `unverified`, `unconfirmed`,
+`untested` and the reason the logs were unavailable. What it dropped was
+elaboration — which file, which line, what it would do next.
+
+ADR 0001 asserted the opposite: that compression eats hedges first because they
+look like filler. It is exactly backwards. Hedges are the highest-information
+tokens in a finding, and a competent model spends its last words on them. The
+mechanism this project was built to defend against did not appear at any
+compression level tested.
+
+### Cost, which cuts the same way
+
+Stage-1 cost was flat across arms — $0.290, $0.289, $0.239 — while output ran
+from 80 to 421 tokens. Input dominates: the scenario, the system prompt and the
+CLI's own context are paid on every call regardless of how briefly the model
+answers. `breadcrumb` was the cheapest arm despite writing five times as much as
+`terse`.
+
+So the token argument fails in both directions. Terse agent dialects save less
+than they appear to, and schema overhead costs less than it appears to. Neither
+effect is where the money is.
+
+### What this does and does not show
+
+**Shows:** for a capable model, on a single-hop handoff of an investigation
+finding, epistemic markers survive compression down to 25 words, and adding a
+schema changes no downstream decision.
+
+**Does not show:** that this holds for weaker models, for chains longer than one
+hop where loss could compound, for findings with many independent caveats rather
+than two, or for agents whose system prompt actively rewards confidence. Each is
+a real place the effect could still live. None was tested.
+
+**Kill rule, declared before the run:** if the control arm scored 80% or better,
+the schema is not worth its overhead. Control scored 100%. The rule applies.
+
+### Status
+
+`breadcrumb` works — 46 tests prove the validator, the installer, the retry
+budget and the eval harness all behave. It is not recommended. The problem it
+solves did not reproduce.
