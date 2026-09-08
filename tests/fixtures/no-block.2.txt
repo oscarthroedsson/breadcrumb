@@ -1,0 +1,1 @@
+auth.spec.ts fail. JWT_SECRET missing CI. add workflow.

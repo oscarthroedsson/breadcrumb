@@ -1,0 +1,3 @@
+```json
+{ "claim": "x", "confidence": "high", "evidence": "read the file", "blocked_on": null }
+```

@@ -1,0 +1,5 @@
+Checked the failing test.
+
+```json
+{ "claim": "401 in CI", "confidence": "medium", "evidence": "green locally, red in CI", "blocked_on": null }
+```

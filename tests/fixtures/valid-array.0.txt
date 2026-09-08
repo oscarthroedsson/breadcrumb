@@ -1,0 +1,8 @@
+Two independent findings.
+
+```json
+[
+  { "claim": "401 in CI", "confidence": "medium", "evidence": "CI red", "blocked_on": null },
+  { "claim": "token refresh untested", "confidence": "high", "evidence": "no test file exists", "blocked_on": null }
+]
+```

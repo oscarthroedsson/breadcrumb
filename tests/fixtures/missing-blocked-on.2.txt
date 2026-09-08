@@ -1,0 +1,3 @@
+```json
+{ "claim": "JWT_SECRET missing in CI", "confidence": "high", "evidence": "CI red" }
+```

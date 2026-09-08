@@ -1,0 +1,11 @@
+Here is what the config looked like before:
+
+```json
+{ "some": "unrelated snippet" }
+```
+
+And my report:
+
+```json
+{ "claim": "x", "confidence": "low", "evidence": "guessed from the error text", "blocked_on": "read the logs" }
+```

@@ -1,0 +1,3 @@
+```json
+[ { "claim": "x", "confidence": "high", "evidence": "y", "blocked_on": null }, "just a string" ]
+```

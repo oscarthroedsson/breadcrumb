@@ -1,0 +1,11 @@
+```json
+{
+  "claim": "auth.spec.ts returns 401 in CI",
+  "confidence": "medium",
+  "evidence": "passes locally, fails in CI; CI logs not readable from here",
+  "blocked_on": "confirm the workflow secret matches prod",
+  "proposed_fix": "add JWT_SECRET to .github/workflows/test.yml",
+  "not_checked": ["SSO login path"],
+  "files": ["src/auth.ts:42"]
+}
+```
