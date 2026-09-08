@@ -71,8 +71,14 @@ hooks:
           command: ${CLAUDE_PROJECT_DIR}/.claude/hooks/validate-handoff.sh
 ```
 
-`maxTurns` is not optional. A `SubagentStop` hook that keeps rejecting can loop
-with an agent that keeps failing to satisfy it.
+`maxTurns` is the outer brake, but the hook has its own: it gives up after two
+rejections and lets the report through with a warning. An agent that cannot
+satisfy the schema is usually obeying an instruction it inherited, and looping
+until `maxTurns` burns the run without telling anyone why. Tune the budget with
+`BREADCRUMB_MAX_RETRIES`.
+
+The hook never rewrites the agent's message. `SubagentStop` can only accept or
+block — only `PreToolUse` can modify anything. Validation, not mutation.
 
 Requires [`jq`](https://jqlang.github.io/jq/). Without it the validator fails
 **open** — a missing dependency must never wedge an agent loop — so the format is
@@ -146,8 +152,9 @@ must change, is in [`docs/test-results.md`](docs/test-results.md).
 tests/run.sh
 ```
 
-35 tests, no API calls: 12 for the validator, 7 for the installer, 5 for the eval
-scorer, 11 for the eval runner (which drives a stubbed CLI in `tests/stubs/`).
+46 tests, no API calls: 12 for the validator, 11 for its retry budget, 7 for the
+installer, 5 for the eval scorer, 11 for the eval runner (which drives a stubbed
+CLI in `tests/stubs/`).
 
 The scorer tests exist because a scorer that silently miscounts is worse than no
 eval at all. The runner tests exist because the first version of this harness met

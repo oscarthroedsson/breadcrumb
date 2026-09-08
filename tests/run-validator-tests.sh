@@ -17,8 +17,11 @@ for f in tests/fixtures/*.txt; do
   expected=${base##*.}
 
   # Build the same payload Claude Code sends a SubagentStop hook.
-  payload=$(jq -n --rawfile msg "$f" \
-    '{hook_event_name:"SubagentStop", agent_id:"test", last_assistant_message:$msg}')
+  # A unique agent id per fixture: the hook counts rejections per agent, and
+  # these fixtures are independent scenarios, not retries of one.
+  payload=$(jq -n --rawfile msg "$f" --arg agent "$name-$$" \
+    '{hook_event_name:"SubagentStop", session_id:"validator-suite",
+      agent_id:$agent, last_assistant_message:$msg}')
 
   stderr=$(printf '%s' "$payload" | bash "$HOOK" 2>&1 >/dev/null)
   got=$?

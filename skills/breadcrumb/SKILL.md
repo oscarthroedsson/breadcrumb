@@ -74,25 +74,6 @@ Other formatting instructions apply to your prose, not to the block. The block's
 shape is fixed and overrides them.
 ```
 
-### 4b. Check CLAUDE.md for rules that fight the schema
-
-```bash
-grep -niE "aldrig|never|max|inga |no code|kort|brief|format" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
-```
-
-`CLAUDE.md` **is** inherited by subagents; an output style is not. So a formatting
-rule living in `CLAUDE.md` reaches every agent you wire, and one that forbids what
-the schema requires — no code blocks, a hard line limit — produces a loop: the
-inherited rule says do not, the hook says you must, and only `maxTurns` ends it.
-
-If you find one, say so and offer the fix: move presentation rules into an output
-style, where they reach the human and not the handoff. Do not edit the user's
-`CLAUDE.md` without asking.
-
-The hook enforces the format; this paragraph is what makes an agent produce it on
-the first try instead of the second. Both are needed — the hook alone costs a
-wasted turn on every single handoff.
-
 ### 5. Verify it actually fires
 
 ```bash
@@ -107,6 +88,23 @@ missing or the file is not executable — say which, do not report success.
 
 State: which files were written, which agents were wired, and the verification
 exit code. If anything was skipped, say what and why.
+
+## If an agent keeps failing the hook
+
+The hook gives up after two rejections and lets the report through with a warning,
+so this never burns a whole run. But if you see `breadcrumb: gave up` repeatedly
+from the same agent, something it inherited is fighting the schema:
+
+```bash
+grep -niE "never|aldrig|no code|max .* lines|kort|brief" CLAUDE.md ~/.claude/CLAUDE.md 2>/dev/null
+```
+
+`CLAUDE.md` is inherited by subagents; an output style is not. A presentation rule
+living in `CLAUDE.md` therefore reaches every agent you wire.
+
+Report what you found and let the user decide. Do not edit their `CLAUDE.md`.
+Moving presentation rules into an output style is one fix; adding an explicit
+exception for the block is another; living with the warning is a third.
 
 ## When not to use this
 
