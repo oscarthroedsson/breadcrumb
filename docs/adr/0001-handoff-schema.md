@@ -1,7 +1,14 @@
 # ADR 0001 — A required JSON block, not a prose convention
 
-**Status:** accepted
+**Status:** refuted by measurement, 2026-09-08 — see `docs/test-results.md`
 **Date:** 2026-09-08
+
+> The reasoning below is left as written. Its central claim — that compression
+> eats hedges first because they look like filler — was tested in run 2 and is
+> backwards. Under a hard 25-word cap the model kept `unverified`, `unconfirmed`
+> and `untested`, and dropped the elaboration instead. All three arms scored
+> 20/20. The decision recorded here stands as a record of what was believed, not
+> as guidance.
 
 ## Context
 

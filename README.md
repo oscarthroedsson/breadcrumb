@@ -1,9 +1,14 @@
 # breadcrumb
 
-Agents that report to other agents drop the words that matter most.
+A four-field handoff block and a `SubagentStop` hook that refuses to let a
+subagent finish without one.
 
-`breadcrumb` is a four-field handoff block and a `SubagentStop` hook that refuses
-to let a subagent finish without one.
+**It did not work, and the repository exists to say so.** Measured across three
+compression levels and 60 trials, the schema changed no downstream decision. The
+problem it was built to solve did not reproduce. Results: [`docs/test-results.md`](docs/test-results.md).
+
+Read on for the argument that motivated it, the experiment that disconfirmed it,
+and the tool itself, which works and is not recommended.
 
 ---
 
@@ -28,7 +33,10 @@ and carry the most information per token. Three things were lost: *trolig* becam
 fact, *obekräftat* became silence, *verifiera först* disappeared. The next agent
 adds the secret, guesses the value, and ships the wrong one.
 
-This is not a writing problem. It is a protocol problem, and it needs a protocol.
+That was the argument. It is wrong, or at least it did not survive contact with
+a measurement — see [Does it actually help?](#does-it-actually-help) below. Under
+a hard 25-word cap the model kept every hedge and dropped the elaboration
+instead.
 
 ## The format
 
@@ -104,47 +112,50 @@ because the agent only learns the requirement by failing it.
 
 ## Does it actually help?
 
+No.
+
 `eval/` is an A/B harness that measures the thing that matters: whether the
-*next* agent is misled.
+*next* agent is misled. Three arms get the same raw observations and the same
+scenario, differing only in the investigator's system prompt — a 25-word cap, a
+90-word cap, or the schema. Stage two is byte-identical in all three: a second
+agent reads the report and answers `VERDICT: SAFE` or `VERDICT: NOT_SAFE`.
 
-Both arms get the same raw observations and the same instruction to be concise
-under a tight token budget. Only the breadcrumb arm gets the schema. Stage two is
-byte-identical in both arms: a second agent reads the report and answers
-`VERDICT: SAFE` or `VERDICT: NOT_SAFE`.
+Ground truth is `NOT_SAFE` — the root cause is unconfirmed and the fix's value is
+undocumented, and in this scenario both blockers sit inside sentences about
+something else. A `SAFE` verdict means the report misled the agent that read it.
+Binary, so scoring needs no judge model.
 
-The scenario's ground truth is `NOT_SAFE` — the root cause is unconfirmed and the
-secret value is itself suspect. Any `SAFE` verdict means the report misled the
-agent that read it. Binary, so scoring needs no judge model.
+```
+ARM           TRIALS   CORRECT  MISLED(SAFE)   OUT_TOKENS   WORDS   STAGE-1 COST
+--------------------------------------------------------------------------------
+terse             20        20             0           80      26         $0.290
+control           20        20             0          245     100         $0.289
+breadcrumb        20        20             0          421     172         $0.239
+```
+
+60 of 60. Here is a 26-word report from the `terse` arm:
+
+> Root cause unconfirmed. Leading suspects: (1) missing JWT_SECRET in CI env,
+> (2) stale/rotated staging JWT secret from June. CI logs unavailable. Untested:
+> SSO login, token refresh paths.
+
+Nothing decision-relevant is missing. Hedges are the highest-information tokens
+in a finding, and a model under pressure spends its last words on them — it drops
+which file and what it would do next, not what it failed to verify.
+
+Cost was flat across arms while output ranged from 80 to 421 tokens, because
+input dominates. The schema arm was the cheapest one.
+
+Reproduce it:
 
 ```bash
-eval/run.sh 5 sonnet   # 1 preflight call, then 20 real ones, ~$0.40
+eval/run.sh 20 sonnet   # 1 preflight call, then 120 real ones
 eval/score.sh
 ```
 
-The runner probes the CLI with one cheap call before spending the rest. If the
-`claude` CLI is not logged in it stops there and says so — the CLI has its own
-authentication, separate from the desktop app, so `claude` followed by `/login`
-once is usually all it needs.
-
-```
-ARM           TRIALS   CORRECT  MISLED(SAFE)      UNPARSEABLE   OUT_TOKENS
---------------------------------------------------------------------------
-control            5         5             0                0          606
-breadcrumb         5         5             0                0          889
-```
-
-**Run 1 found no effect.** Both arms scored 5/5. The schema changed no downstream
-decision and cost 47% more output tokens to do it.
-
-The reason is visible in the transcripts: the control never actually compressed.
-Told to be concise, it spent 606 tokens and kept every caveat on its own line.
-An agent writing like that does not need a schema — and on this machine it had
-help, because the CLI loaded a user-level output style that is itself a handoff
-protocol. The experiment never created the condition the hypothesis is about.
-
-So: **breadcrumb is unproven.** Do not adopt it on the strength of an argument
-this repository has failed to demonstrate. The full write-up, including what run 2
-must change, is in [`docs/test-results.md`](docs/test-results.md).
+The full write-up, including what these runs do **not** rule out — weaker models,
+chains longer than one hop, findings with many independent caveats — is in
+[`docs/test-results.md`](docs/test-results.md).
 
 ## Tests
 
@@ -163,18 +174,27 @@ explanation, having spent twenty calls to say nothing.
 
 ## When not to use this
 
+On this evidence: by default. The cases below were written when the premise still
+looked sound, and they remain the places it would fail hardest.
+
 - **Single-agent work.** There is no handoff to protect.
 - **Agents reporting to a human.** Prose caveats survive human review.
 - **Throwaway exploration.** The schema costs a turn it will not earn back.
 
+If you want to use it anyway, the honest reason is not reliability — it is that a
+machine-readable block is easier for *other tooling* to consume than prose. That
+is a different argument, and this repository has not tested it.
+
 ## Why not just make agents terser?
 
-That was the original idea, and it is the wrong axis. Inter-agent messages are a
-small share of total spend in a fleet — file contents, tool output and system
-prompts dominate — while a single misunderstanding costs a whole re-run. And
-terseness compresses exactly the epistemic markers this project exists to protect.
-`confidence: medium` costs three tokens. It is the only thing between a guess and
-a deploy.
+You can. That was the question this project started from, and the measured answer
+is that a 25-word agent-to-agent dialect cost nothing in decision quality here.
+
+The reason to be unexcited about it is different from the one this README
+originally gave: inter-agent messages are a small share of total spend, because
+input tokens dominate. Run 2 shows it directly — a fivefold difference in output
+length moved cost by less than 20%, in the wrong direction. Compressing what
+agents say to each other optimises a rounding error.
 
 ## License
 
