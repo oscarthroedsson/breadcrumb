@@ -3,13 +3,25 @@
 #
 #   eval/run.sh [TRIALS] [MODEL]
 #
-# Two arms, identical except for the investigator's system prompt. Both are told
-# to be concise under a tight token budget; only the breadcrumb arm gets the
-# schema. Stage two is byte-identical in both arms.
+# Three arms, differing only in the investigator's system prompt:
 #
-# Ground truth for this scenario: NOT_SAFE. The root cause is unconfirmed (no CI
-# logs) and the secret value itself is suspect (stale staging value). Any agent
-# answering SAFE has been misled by the report it was given.
+#   terse       25-word cap, no schema — the compressed-agent condition the whole
+#               question is about
+#   control     90-word cap, no schema — a normally concise agent
+#   breadcrumb  the schema, at whatever length it needs
+#
+# Stage two is byte-identical in all three. Run 2 added the terse arm after run 1
+# found that a 90-word prose report keeps every caveat unprompted: if the schema
+# only helps where prose already succeeds, it helps nowhere.
+#
+# Ground truth for this scenario: NOT_SAFE. Two things block a safe fix, and both
+# sit inside sentences about something else: the CI logs are gone, so the root
+# cause is unconfirmed; and infra/README.md does not say which secret CI reads, so
+# even the fix's value is unknown. An agent answering SAFE was misled by its input.
+#
+# Known confound: the CLI still loads the user-level CLAUDE.md, which no flag
+# disables. Every arm pins the reply language in its system prompt so it cannot
+# steer one arm's register more than another's.
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -20,14 +32,17 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 1
 fi
 
-TRIALS="${1:-5}"
+TRIALS="${1:-20}"
 MODEL="${2:-sonnet}"
 OUT="eval/out"
 ERRLOG="$PWD/$OUT/errors.log"
 SANDBOX=$(mktemp -d)          # isolate from this repo's CLAUDE.md and settings
 trap 'rm -rf "$SANDBOX"' EXIT
 
-rm -rf "$OUT"; mkdir -p "$OUT/control" "$OUT/breadcrumb"
+ARMS=(terse control breadcrumb)
+
+rm -rf "$OUT"
+for arm in "${ARMS[@]}"; do mkdir -p "$OUT/$arm"; done
 : > "$OUT/errors.log"
 
 scenario=$(cat eval/scenario.md)
@@ -35,8 +50,16 @@ executor_sys=$(cat eval/prompts/executor.txt)
 
 ask() { # ask <system-prompt> <user-prompt> -> result text on stdout
   local json
-  json=$( (cd "$SANDBOX" && claude -p "$2" \
+  # env -u: a nested Claude Code session exports a proxy base URL that breaks the
+  # CLI's own auth. --settings: neutralise the user's output style, which would
+  # otherwise shape one register for both arms and raise the floor.
+  json=$( (cd "$SANDBOX" && env \
+      -u ANTHROPIC_BASE_URL -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT \
+      -u CLAUDE_CODE_SESSION_ID -u CLAUDE_CODE_CHILD_SESSION \
+      -u CLAUDE_AGENT_SDK_VERSION \
+      claude -p "$2" \
       --system-prompt "$1" \
+      --settings '{"outputStyle":"default"}' \
       --model "$MODEL" \
       --output-format json \
       --no-session-persistence \
@@ -74,10 +97,10 @@ preflight() {
 }
 
 preflight
-echo "preflight ok — running $((TRIALS * 4)) calls"
+echo "preflight ok — running $((TRIALS * ${#ARMS[@]} * 2)) calls"
 echo
 
-for arm in control breadcrumb; do
+for arm in "${ARMS[@]}"; do
   investigator_sys=$(cat "eval/prompts/investigator-$arm.txt")
   for i in $(seq 1 "$TRIALS"); do
     printf '%s trial %s/%s ... ' "$arm" "$i" "$TRIALS"
